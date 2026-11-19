@@ -14,6 +14,8 @@ create table if not exists public.attendees (
                  check (cert_type in ('participation', 'appreciation')),
   cert_id        text        not null unique,
   download_count int         not null default 0,
+  source         text        not null default 'csv' check (source in ('csv', 'manual')),
+  note           text,
   created_at     timestamptz not null default now(),
   constraint attendees_roll_no_cert_type_key unique (roll_no, cert_type)
 );

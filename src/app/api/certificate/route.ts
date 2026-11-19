@@ -102,9 +102,9 @@ export async function POST(req: Request) {
       });
     }
 
-    // 7. Render one-page PDF with stored spelling, QR code & cert_id
+    // 7. Render one-page PDF with stored spelling
     const displayName = attendee.name.trim().replace(/\s+/g, " ");
-    const pdfBytes = await renderCertificate(attendee.cert_type, displayName, attendee.cert_id);
+    const pdfBytes = await renderCertificate(attendee.cert_type, displayName);
 
     // 8. Increment download_count atomically
     const { error: rpcError } = await supabase.rpc("increment_download_count", {

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/admin-auth";
 import { getReleased } from "@/lib/supabase";
 import AdminUploadClient from "./AdminUploadClient";
+import SocietyUploadBox from "./SocietyUploadBox";
 import ReleaseToggle from "./ReleaseToggle";
 import AttendeesManager from "./AttendeesManager";
 
@@ -49,10 +50,13 @@ export default async function AdminDashboardPage() {
         {/* Release / Hide Toggle */}
         <ReleaseToggle initialReleased={released} />
 
-        {/* Upload & Sync Section */}
+        {/* Upload Attendees (Main Unified CSV) */}
         <AdminUploadClient />
 
-        {/* Registered Attendees Table, Search, Filters & CSV Export */}
+        {/* Optional: Upload Society Members List */}
+        <SocietyUploadBox onSyncSuccess={() => {}} />
+
+        {/* Registered Attendees (Grouped by person, society toggle, edit & delete) */}
         <AttendeesManager />
       </div>
     </main>

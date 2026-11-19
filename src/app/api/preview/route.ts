@@ -9,11 +9,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * DEV ONLY — tune name placement.
- *   /api/preview?type=participation&name=Test%20Name
- * Optional overrides (without editing config.ts):
- *   &y=300     baseline Y in points from the bottom
- *   &size=40   starting font size
+ * DEV ONLY — tune and inspect name placement on certificates.
+ *   /api/preview?type=participation&name=Bazigh%20Ali
+ * Optional overrides for tuning without editing config.ts:
+ *   &y=265        baseline Y in points from bottom (default: 265)
+ *   &size=34      starting font size (default: 34)
+ *   &cx=0.665     centerX ratio (default: 0.665)
  */
 export async function GET(req: NextRequest) {
   if (process.env.NODE_ENV === "production") {
@@ -28,7 +29,8 @@ export async function GET(req: NextRequest) {
       { status: 400 },
     );
   }
-  const name = (params.get("name") ?? "Test Name").trim().replace(/\s+/g, " ").slice(0, 120) || "Test Name";
+  const name = (params.get("name") ?? "Bazigh Ali").trim().replace(/\s+/g, " ").slice(0, 120) || "Bazigh Ali";
+
   const num = (key: string) => {
     const raw = params.get(key);
     if (raw === null || raw === "") return undefined;
@@ -37,7 +39,12 @@ export async function GET(req: NextRequest) {
   };
 
   try {
-    const pdf = await renderCertificate(type, name, "DEMO-12345", { nameY: num("y"), fontSize: num("size") });
+    const pdf = await renderCertificate(type, name, {
+      nameY: num("y"),
+      fontSize: num("size"),
+      centerXRatio: num("cx"),
+    });
+
     return new NextResponse(Buffer.from(pdf), {
       headers: {
         "Content-Type": "application/pdf",

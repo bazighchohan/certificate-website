@@ -4,9 +4,8 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import QRCode from "qrcode";
 
-import { APP_URL, NAME_STYLES, TEMPLATE_FILE, type CertType, type NameStyle } from "@/lib/config";
+import { NAME_STYLES, TEMPLATE_FILE, type CertType, type NameStyle } from "@/lib/config";
 
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 
@@ -39,17 +38,17 @@ async function loadFontBytes(fontFile: string): Promise<Uint8Array | null> {
 export interface RenderOverrides {
   nameY?: number;
   fontSize?: number;
-  certId?: string;
+  centerXRatio?: number;
 }
 
 /**
- * Returns a one-page PDF: the page for `certType` with `name` centred on it,
- * along with a QR code and cert_id at the bottom corner pointing to /verify/<cert_id>.
+ * Returns a one-page PDF: the page for `certType` with `name` centred horizontally
+ * on page.getWidth() * centerXRatio (defaulting to 0.665), sitting between the ribbon
+ * and the divider line.
  */
 export async function renderCertificate(
   certType: CertType,
   name: string,
-  certId: string,
   overrides: RenderOverrides = {},
 ): Promise<Uint8Array> {
   const style: NameStyle = { ...NAME_STYLES[certType], ...stripUndefined(overrides) };
@@ -72,71 +71,37 @@ export async function renderCertificate(
   const page = pdf.getPage(0);
   const { width: pageWidth } = page.getSize();
 
+  // Content block center X (default: 66.5% of page width)
+  const centerX = pageWidth * (style.centerXRatio ?? 0.665);
+
+  // Maximum width for the name (e.g. 55% of page width to never touch diagonal shapes or edges)
+  const maxAllowedWidth = pageWidth * (style.maxWidthRatio ?? 0.55);
+
+  // Embed font with fontkit (falls back to Helvetica Bold if font file is missing)
   const fontBytes = await loadFontBytes(style.fontFile);
   const font: PDFFont = fontBytes
     ? await pdf.embedFont(fontBytes, { subset: true })
     : await pdf.embedFont(StandardFonts.HelveticaBold);
 
-  const monoFont = await pdf.embedFont(StandardFonts.Helvetica);
-
-  // Auto-shrink name to fit maxWidth
+  // Auto-shrink font size if natural text width exceeds maxAllowedWidth
   let size = style.fontSize;
   const naturalWidth = font.widthOfTextAtSize(name, size);
-  if (naturalWidth > style.maxWidth) size = (size * style.maxWidth) / naturalWidth;
+  if (naturalWidth > maxAllowedWidth) {
+    size = (size * maxAllowedWidth) / naturalWidth;
+  }
   const textWidth = font.widthOfTextAtSize(name, size);
 
-  // Draw attendee name
+  // Center horizontally on centerX (centerX - textWidth / 2)
+  const x = centerX - textWidth / 2;
+
+  // Draw attendee name with dark navy color (#0B2A4F)
   page.drawText(name, {
-    x: (pageWidth - textWidth) / 2,
+    x,
     y: style.nameY,
     size,
     font,
     color: rgb(...style.color),
   });
-
-  // Generate QR code pointing to /verify/<cert_id>
-  if (certId) {
-    const cleanBase = APP_URL.replace(/\/+$/, "");
-    const verifyUrl = `${cleanBase}/verify/${encodeURIComponent(certId)}`;
-
-    // Generate PNG buffer of QR code
-    const qrPngBuffer = await QRCode.toBuffer(verifyUrl, {
-      type: "png",
-      width: 140,
-      margin: 1,
-      color: {
-        dark: "#1e293b", // Slate 800
-        light: "#ffffff",
-      },
-    });
-
-    const qrImage = await pdf.embedPng(qrPngBuffer);
-    const qrDim = 46; // 46pt square
-    const margin = 28; // 28pt from bottom-right corner
-
-    const qrX = pageWidth - margin - qrDim;
-    const qrY = margin + 10;
-
-    page.drawImage(qrImage, {
-      x: qrX,
-      y: qrY,
-      width: qrDim,
-      height: qrDim,
-    });
-
-    // Draw cert_id label directly underneath QR code
-    const label = `ID: ${certId}`;
-    const labelSize = 7;
-    const labelWidth = monoFont.widthOfTextAtSize(label, labelSize);
-
-    page.drawText(label, {
-      x: qrX + (qrDim - labelWidth) / 2,
-      y: qrY - 8,
-      size: labelSize,
-      font: monoFont,
-      color: rgb(0.35, 0.4, 0.45),
-    });
-  }
 
   pdf.setTitle(`Certificate – ${name}`);
   return pdf.save();

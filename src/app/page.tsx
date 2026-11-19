@@ -1,5 +1,10 @@
 import CertificateForm from "./CertificateForm";
-import { SEMINAR_SUBTITLE, SEMINAR_TITLE } from "@/lib/config";
+import {
+  FOOTER_CREDIT_TEXT,
+  FOOTER_HELP_TEXT,
+  SEMINAR_SUBTITLE,
+  SEMINAR_TITLE,
+} from "@/lib/config";
 import { getReleased } from "@/lib/supabase";
 
 // Release status can change at any time — always render on request.
@@ -16,8 +21,12 @@ export default async function Home() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 px-4 py-10">
-      <div className="w-full max-w-md">
+    <main className="flex min-h-dvh flex-col items-center justify-between bg-gradient-to-b from-slate-50 to-slate-100 px-4 pt-10 pb-8 sm:py-12">
+      {/* Invisible spacer so the card stays vertically balanced on tall displays */}
+      <div className="hidden sm:block" aria-hidden="true" />
+
+      {/* Main card section */}
+      <div className="w-full max-w-md my-auto">
         <header className="mb-8 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
             {SEMINAR_SUBTITLE}
@@ -28,17 +37,19 @@ export default async function Home() {
         </header>
 
         <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
-          {released ? (
-            <CertificateForm />
-          ) : (
-            <ComingSoon />
-          )}
+          {released ? <CertificateForm /> : <ComingSoon />}
         </section>
-
-        <footer className="mt-6 text-center text-xs text-slate-500">
-          Having trouble? Contact the seminar organisers.
-        </footer>
       </div>
+
+      {/* Centered two-line footer */}
+      <footer className="mt-8 text-center space-y-1.5 pb-2">
+        <p className="text-sm font-medium text-slate-600">
+          {FOOTER_HELP_TEXT}
+        </p>
+        <p className="text-xs text-slate-400">
+          {FOOTER_CREDIT_TEXT}
+        </p>
+      </footer>
     </main>
   );
 }
