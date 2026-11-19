@@ -51,7 +51,7 @@ export const NAME_STYLES: Record<CertType, NameStyle> = {
     maxWidthRatio: 0.55,
     fontFile: "fonts/TimesNewRoman-Bold.ttf",
     fontSize: 34,
-    nameY: 265, // Lowered 25pt from 290pt to sit between ribbon and line
+    nameY: 265, // Midway between the ribbon ("This certificate is presented to") and the thin line
     color: [11 / 255, 42 / 255, 79 / 255],
   },
   appreciation: {
@@ -60,7 +60,7 @@ export const NAME_STYLES: Record<CertType, NameStyle> = {
     maxWidthRatio: 0.55,
     fontFile: "fonts/TimesNewRoman-Bold.ttf",
     fontSize: 34,
-    nameY: 265, // Lowered 25pt from 290pt to sit between ribbon and line
+    nameY: 265, // Midway between the ribbon ("This certificate is presented to") and the thin line
     color: [11 / 255, 42 / 255, 79 / 255],
   },
 };

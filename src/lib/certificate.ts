@@ -42,9 +42,11 @@ export interface RenderOverrides {
 }
 
 /**
- * Returns a one-page PDF: the page for `certType` with `name` centred horizontally
- * on page.getWidth() * centerXRatio (defaulting to 0.665), sitting between the ribbon
- * and the divider line.
+ * Returns a one-page PDF:
+ * 1. Picks the exact template page object by type (participation = 0, appreciation = 1).
+ * 2. Draws the name centered at (page.getWidth() * centerXRatio) and nameY directly onto that page.
+ * 3. Removes all other pages only AFTER drawing, so the target page object is never missed.
+ * 4. Logs exact dimensions, coordinates, and font sizes to the console.
  */
 export async function renderCertificate(
   certType: CertType,
@@ -59,31 +61,32 @@ export async function renderCertificate(
   const pdf = await PDFDocument.load(templateBytes);
   pdf.registerFontkit(fontkit);
 
-  const pageCount = pdf.getPageCount();
+  const pages = pdf.getPages();
+  const pageCount = pages.length;
+
   if (style.pageIndex < 0 || style.pageIndex >= pageCount) {
-    throw new Error(`Template has ${pageCount} page(s); no page ${style.pageIndex + 1} for ${certType}.`);
+    throw new Error(
+      `Template has ${pageCount} page(s); configured pageIndex ${style.pageIndex} for '${certType}' does not exist.`
+    );
   }
 
-  // Keep only the page for this certificate type
-  for (let i = pageCount - 1; i >= 0; i--) {
-    if (i !== style.pageIndex) pdf.removePage(i);
-  }
-  const page = pdf.getPage(0);
-  const { width: pageWidth } = page.getSize();
+  // 1. Pick the exact target page object by certificate type BEFORE removing any pages
+  const targetPage = pages[style.pageIndex];
+  const { width: pageWidth, height: pageHeight } = targetPage.getSize();
 
-  // Content block center X (default: 66.5% of page width)
+  // Content block horizontal center (default: 66.5% of canvas width)
   const centerX = pageWidth * (style.centerXRatio ?? 0.665);
 
-  // Maximum width for the name (e.g. 55% of page width to never touch diagonal shapes or edges)
+  // Maximum width boundary (default: 55% of canvas width)
   const maxAllowedWidth = pageWidth * (style.maxWidthRatio ?? 0.55);
 
-  // Embed font with fontkit (falls back to Helvetica Bold if font file is missing)
+  // Load font
   const fontBytes = await loadFontBytes(style.fontFile);
   const font: PDFFont = fontBytes
     ? await pdf.embedFont(fontBytes, { subset: true })
     : await pdf.embedFont(StandardFonts.HelveticaBold);
 
-  // Auto-shrink font size if natural text width exceeds maxAllowedWidth
+  // Calculate font size (auto-shrink if natural width exceeds maximum)
   let size = style.fontSize;
   const naturalWidth = font.widthOfTextAtSize(name, size);
   if (naturalWidth > maxAllowedWidth) {
@@ -91,17 +94,34 @@ export async function renderCertificate(
   }
   const textWidth = font.widthOfTextAtSize(name, size);
 
-  // Center horizontally on centerX (centerX - textWidth / 2)
-  const x = centerX - textWidth / 2;
+  // Calculate X (centered on centerX)
+  const textX = centerX - textWidth / 2;
+  const textY = style.nameY;
 
-  // Draw attendee name with dark navy color (#0B2A4F)
-  page.drawText(name, {
-    x,
-    y: style.nameY,
+  // Server log for verification
+  console.log(
+    `[renderCertificate] type="${certType}" pageIndex=${style.pageIndex} ` +
+      `pageSize=${pageWidth.toFixed(2)}x${pageHeight.toFixed(2)} ` +
+      `textX=${textX.toFixed(2)} textY=${textY.toFixed(2)} ` +
+      `fontSize=${size.toFixed(2)} naturalWidth=${naturalWidth.toFixed(2)} textWidth=${textWidth.toFixed(2)} ` +
+      `name="${name}"`
+  );
+
+  // 2. Draw the name on that exact target page object
+  targetPage.drawText(name, {
+    x: textX,
+    y: textY,
     size,
     font,
     color: rgb(...style.color),
   });
+
+  // 3. Remove all other pages only AFTER drawing is complete
+  for (let i = pageCount - 1; i >= 0; i--) {
+    if (i !== style.pageIndex) {
+      pdf.removePage(i);
+    }
+  }
 
   pdf.setTitle(`Certificate – ${name}`);
   return pdf.save();
