@@ -19,13 +19,15 @@ export default async function VerifyCertificatePage({ params }: VerifyPageProps)
     return <InvalidCertificateView reason="Malformed certificate ID" />;
   }
 
-  let attendee: {
+  interface AttendeeVerifyRecord {
     name: string;
     roll_no: string;
     cert_type: CertType;
     cert_id: string;
     created_at: string;
-  } | null = null;
+  }
+
+  let attendee: AttendeeVerifyRecord | null = null;
 
   try {
     const supabase = getSupabaseAdmin();
@@ -38,7 +40,7 @@ export default async function VerifyCertificatePage({ params }: VerifyPageProps)
     if (error) {
       console.error("Supabase lookup error during verification:", error);
     } else if (data) {
-      attendee = data as typeof attendee;
+      attendee = data as unknown as AttendeeVerifyRecord;
     }
   } catch (err) {
     console.error("Database connection failure in verification:", err);
