@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   };
 
   try {
-    const pdf = await renderCertificate(type, name, { nameY: num("y"), fontSize: num("size") });
+    const pdf = await renderCertificate(type, name, "DEMO-12345", { nameY: num("y"), fontSize: num("size") });
     return new NextResponse(Buffer.from(pdf), {
       headers: {
         "Content-Type": "application/pdf",

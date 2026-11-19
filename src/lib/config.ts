@@ -5,6 +5,11 @@ export const SEMINAR_TITLE =
 export const SEMINAR_SUBTITLE =
   process.env.SEMINAR_SUBTITLE ?? "E-Certificate Portal";
 
+/** Base public URL used for generating QR code links. */
+export const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
 // ---------------------------------------------------------------------------
 // Certificate template
 // ---------------------------------------------------------------------------

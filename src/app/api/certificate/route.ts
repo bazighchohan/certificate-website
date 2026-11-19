@@ -10,13 +10,14 @@ import { getReleased, getSupabaseAdmin } from "@/lib/supabase";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const RATE_LIMIT = 10;
+// 5 requests per minute per IP
+const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 60_000;
 
 const MSG_BAD_INPUT = "Please enter a valid roll number and full name.";
 const MSG_NOT_FOUND = "Not found, check your details.";
 
-type Attendee = { id: string; roll_no: string; name: string; cert_type: CertType };
+type Attendee = { id: string; roll_no: string; name: string; cert_type: CertType; cert_id: string };
 
 const normalizeRollNo = (v: string) => v.trim().toUpperCase();
 const normalizeName = (v: string) => v.trim().replace(/\s+/g, " ").toLowerCase();
@@ -35,7 +36,7 @@ function fail(
 }
 
 export async function POST(req: Request) {
-  // 1. Rate limit: 10 requests / minute / IP
+  // 1. Rate limit: 5 requests / minute / IP
   const rl = rateLimit(`cert:${clientIp(req)}`, RATE_LIMIT, RATE_WINDOW_MS);
   if (!rl.ok) {
     return fail(
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from("attendees")
-      .select("id, roll_no, name, cert_type")
+      .select("id, roll_no, name, cert_type, cert_id")
       .eq("roll_no", roll);
     if (error) throw error;
 
@@ -101,11 +102,11 @@ export async function POST(req: Request) {
       });
     }
 
-    // 7. Render one-page PDF with the stored (official) spelling
+    // 7. Render one-page PDF with stored spelling, QR code & cert_id
     const displayName = attendee.name.trim().replace(/\s+/g, " ");
-    const pdfBytes = await renderCertificate(attendee.cert_type, displayName);
+    const pdfBytes = await renderCertificate(attendee.cert_type, displayName, attendee.cert_id);
 
-    // 8. Increment download_count atomically (don't block the download on failure)
+    // 8. Increment download_count atomically
     const { error: rpcError } = await supabase.rpc("increment_download_count", {
       attendee_id: attendee.id,
     });
