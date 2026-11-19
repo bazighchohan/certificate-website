@@ -27,7 +27,7 @@ interface PreviewData {
   errors: string[];
 }
 
-export default function AdminUploadClient() {
+export default function AdminUploadClient({ onUploadSuccess }: { onUploadSuccess?: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [purgeMissing, setPurgeMissing] = useState(false);
   const [preview, setPreview] = useState<PreviewData | null>(null);
@@ -111,6 +111,7 @@ export default function AdminUploadClient() {
         setPreview(null);
         setFile(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
+        onUploadSuccess?.();
       }
     } catch {
       setError("Network error while importing records.");

@@ -12,7 +12,7 @@ interface SocietyPreviewData {
   unmatched: { rollNo: string; name?: string }[];
 }
 
-export default function SocietyUploadBox({ onSyncSuccess }: { onSyncSuccess: () => void }) {
+export default function SocietyUploadBox({ onSyncSuccess }: { onSyncSuccess?: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [addUnmatched, setAddUnmatched] = useState(false);
   const [preview, setPreview] = useState<SocietyPreviewData | null>(null);
@@ -84,7 +84,7 @@ export default function SocietyUploadBox({ onSyncSuccess }: { onSyncSuccess: () 
         setPreview(null);
         setFile(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
-        onSyncSuccess();
+        onSyncSuccess?.();
       }
     } catch {
       setError("Network error while committing society sync.");

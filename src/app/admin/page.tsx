@@ -3,10 +3,8 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/admin-auth";
 import { getReleased } from "@/lib/supabase";
-import AdminUploadClient from "./AdminUploadClient";
-import SocietyUploadBox from "./SocietyUploadBox";
 import ReleaseToggle from "./ReleaseToggle";
-import AttendeesManager from "./AttendeesManager";
+import AdminContentWrapper from "./AdminContentWrapper";
 
 export const dynamic = "force-dynamic";
 
@@ -50,14 +48,8 @@ export default async function AdminDashboardPage() {
         {/* Release / Hide Toggle */}
         <ReleaseToggle initialReleased={released} />
 
-        {/* Upload Attendees (Main Unified CSV) */}
-        <AdminUploadClient />
-
-        {/* Optional: Upload Society Members List */}
-        <SocietyUploadBox onSyncSuccess={() => {}} />
-
-        {/* Registered Attendees (Grouped by person, society toggle, edit & delete) */}
-        <AttendeesManager />
+        {/* Client Wrapper containing Upload Box, Society Sync, and Attendees Table */}
+        <AdminContentWrapper />
       </div>
     </main>
   );
